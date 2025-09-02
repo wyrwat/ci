@@ -7,6 +7,13 @@ test('has title', async ({ page }) => {
   await expect(page).toHaveTitle(/Playwright/);
 });
 
+test('not has title', async ({ page }) => {
+  await page.goto('https://playwright.dev/');
+
+  // Expect a title "to contain" a substring.
+  await expect(page).not.toHaveTitle(/Selenium/);
+});
+
 test('get started link', async ({ page }) => {
   await page.goto('https://playwright.dev/');
 
