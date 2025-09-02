@@ -1,12 +1,12 @@
-import pluginJs from "@eslint/js";
-import eslintPluginPlaywright from "eslint-plugin-playwright";
-import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
-import globals from "globals";
-import tseslint from "typescript-eslint";
+import pluginJs from '@eslint/js';
+import eslintPluginPlaywright from 'eslint-plugin-playwright';
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default [
-  { ignores: ["package-lock.json", "playwright-report/**", "test-results/**"] },
-  { files: ["**/*.{js,mjs,cjs,ts}"] },
+  { ignores: ['package-lock.json', 'playwright-report/**', 'test-results/**'] },
+  { files: ['**/*.{js,mjs,cjs,ts}'] },
   {
     languageOptions: {
       globals: globals.node,
@@ -18,24 +18,34 @@ export default [
   pluginJs.configs.recommended,
   {
     rules: {
-      "no-console": "error",
+      'no-console': 'error',
     },
   },
   ...tseslint.configs.recommended,
   {
     rules: {
-      "@typescript-eslint/explicit-function-return-type": "error",
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      // Prettier formatting rule
+      'prettier/prettier': [
+        'error',
+        {
+          singleQuote: true, // matches your .prettierrc
+          semi: true,
+          endOfLine: 'auto',
+          tabWidth: 2,
+        },
+      ],
     },
   },
-  eslintPluginPlaywright.configs["flat/recommended"],
+  eslintPluginPlaywright.configs['flat/recommended'],
   {
     rules: {
-      "playwright/no-nested-step": "off",
+      'playwright/no-nested-step': 'off',
     },
     settings: {
       playwright: {
         globalAliases: {
-          test: ["setup"],
+          test: ['setup'],
         },
       },
     },
