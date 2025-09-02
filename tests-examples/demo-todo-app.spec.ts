@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test, expect, type Page } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
@@ -451,7 +452,7 @@ test.describe("Routing", () => {
   });
 });
 
-async function createDefaultTodos(page: Page) {
+async function createDefaultTodos(page: Page): Promise<void> {
   // create a new todo locator
   const newTodo = page.getByPlaceholder("What needs to be done?");
 
@@ -461,6 +462,7 @@ async function createDefaultTodos(page: Page) {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 async function checkNumberOfTodosInLocalStorage(page: Page, expected: number) {
   return await page.waitForFunction((e) => {
     return JSON.parse(localStorage["react-todos"]).length === e;
