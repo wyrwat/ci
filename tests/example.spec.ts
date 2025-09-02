@@ -7,11 +7,18 @@ test('has title', async ({ page }) => {
   await expect(page).toHaveTitle(/Playwright/);
 });
 
-test('not has title', async ({ page }) => {
+test('not has title Selenium', async ({ page }) => {
   await page.goto('https://playwright.dev/');
 
   // Expect a title "to contain" a substring.
   await expect(page).not.toHaveTitle(/Selenium/);
+});
+
+test('not has title Cypress', async ({ page }) => {
+  await page.goto('https://playwright.dev/');
+
+  // Expect a title "to contain" a substring.
+  await expect(page).not.toHaveTitle(/Cypress/);
 });
 
 test('get started link', async ({ page }) => {
