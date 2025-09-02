@@ -7,7 +7,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '0 2 * * *' # codziennie o 2:00
+    - cron: '*/5 * * * *'
 
 jobs:
   lint:
