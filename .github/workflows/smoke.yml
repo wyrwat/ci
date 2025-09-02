@@ -1,0 +1,35 @@
+name: Smoke Tests
+
+# Workflow tylko przez API lub ręcznie
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Environment to run smoke tests'
+        required: true
+        default: 'staging'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Run smoke tests
+        run: npx playwright test --grep @smoke --reporter=html
+        env:
+          TEST_ENV: ${{ github.event.inputs.env }}
+
+      - name: Upload smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: playwright-report
