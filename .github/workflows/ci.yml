@@ -1,15 +1,55 @@
 name: CI Pipeline
 
-# Event triggers
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  # schedule:
-  #   - cron: '*/5 * * * *'
+  schedule:
+    - cron: '0 9,17 * * *'
 
 jobs:
+  prepare-env:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "PLAYWRIGHT_VERSION=$(node -e "console.log(require('./package-lock.json').dependencies['@playwright/test'].version)")" >> $GITHUB_ENV
+
+      - name: Cache playwright binaries
+        uses: actions/cache@v3
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        id: node-cache
+        with:
+          path: node_modules
+          key: node_modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -23,50 +63,56 @@ jobs:
 
   changed-tests:
     if: github.event_name == 'pull_request'
+    needs: prepare-env
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+
       - name: Run only changed tests
         run: |
           CHANGED=$(git diff --name-only origin/main...HEAD | grep "tests/.*.spec.ts" || true)
           if [ -z "$CHANGED" ]; then
             echo "No changed tests"
           else
-            npx playwright test $CHANGED --reporter=html
+            npx playwright test $CHANGED
           fi
-      - name: Upload report
-        if: always()
+
+      - name: Archive test results
+        if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: changed-tests-report
-          path: playwright-report
+          name: test-reports-changed
+          path: |
+            ./playwright-report/**/*.*
+            ./test-results/**/*.*
+
+      - name: Publish smoke test report
+        uses: mikepenz/action-junit-report@v5
+        if: success() || failure()
+        with:
+          report_paths: './playwright-report/results.xml'
 
   regression:
     if: github.event_name == 'schedule'
+    needs: prepare-env
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+
       - name: Run full regression
-        run: npx playwright test --reporter=html
-      - name: Upload regression report
-        if: always()
+        run: npx playwright test
+
+      - name: Archive test results
+        if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: regression-report
-          path: playwright-report
+          name: test-reports-regression
+          path: |
+            ./playwright-report/**/*.*
+            ./test-results/**/*.*
+
+      - name: Publish regression report
+        uses: mikepenz/action-junit-report@v5
+        if: success() || failure()
+        with:
+          report_paths: './playwright-report/results.xml'

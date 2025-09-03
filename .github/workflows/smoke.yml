@@ -1,6 +1,5 @@
 name: Smoke Tests
 
-# Workflow tylko przez API lub ręcznie
 on:
   workflow_dispatch:
     inputs:
@@ -19,18 +18,29 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Install dependencies
         run: npm ci
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
+
       - name: Run smoke tests
-        run: npx playwright test --grep @smoke --reporter=html
+        run: npx playwright test --grep @smoke
         env:
           TEST_ENV: ${{ github.event.inputs.env }}
 
-      - name: Upload smoke report
-        if: always()
+      - name: Archive test results
+        if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-report
-          path: playwright-report
+          name: smoke-test-reports
+          path: |
+            ./playwright-report/**/*.*
+            ./test-results/**/*.*
+
+      - name: Publish smoke test report
+        uses: mikepenz/action-junit-report@v5
+        if: success() || failure()
+        with:
+          report_paths: './playwright-report/results.xml'
