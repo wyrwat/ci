@@ -63,29 +63,48 @@ jobs:
 
   changed-tests:
     if: github.event_name == 'pull_request'
-    needs: prepare-env
+    needs: [prepare-env]
+    timeout-minutes: 5
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
-
-      - name: Run only changed tests
-        run: |
-          CHANGED=$(git diff --name-only origin/main...HEAD | grep "tests/.*.spec.ts" || true)
-          if [ -z "$CHANGED" ]; then
-            echo "No changed tests"
-          else
-            npx playwright test $CHANGED
-          fi
-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "PLAYWRIGHT_VERSION=$(node -e "console.log(require('./package-lock.json').dependencies['@playwright/test'].version)")" >> $GITHUB_ENV
+      - name: Cache playwright binaries
+        if: always()
+        uses: actions/cache@v3
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        id: node-cashe
+        with:
+          path: |
+            node_modules
+          key: node_modules-${{ hashFiles('package-lock.json')}}
+      - name: Run Playwright tests
+        run: npm run test:smoke
       - name: Archive test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-changed
+          name: test-reports-smoke-test
           path: |
             ./playwright-report/**/*.*
             ./test-results/**/*.*
-
       - name: Publish smoke test report
         uses: mikepenz/action-junit-report@v5
         if: success() || failure()
@@ -94,24 +113,49 @@ jobs:
 
   regression:
     if: github.event_name == 'schedule'
-    needs: prepare-env
+    needs: [prepare-env]
+    timeout-minutes: 5
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
-
-      - name: Run full regression
-        run: npx playwright test
-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "PLAYWRIGHT_VERSION=$(node -e "console.log(require('./package-lock.json').dependencies['@playwright/test'].version)")" >> $GITHUB_ENV
+      - name: Cache playwright binaries
+        if: always()
+        uses: actions/cache@v3
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        id: node-cashe
+        with:
+          path: |
+            node_modules
+          key: node_modules-${{ hashFiles('package-lock.json')}}
+      - name: Run Playwright tests
+        run: npm run test:smoke
       - name: Archive test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-regression
+          name: test-reports-smoke-test
           path: |
             ./playwright-report/**/*.*
             ./test-results/**/*.*
-
-      - name: Publish regression report
+      - name: Publish smoke test report
         uses: mikepenz/action-junit-report@v5
         if: success() || failure()
         with:
