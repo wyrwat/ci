@@ -9,25 +9,6 @@ on:
     - cron: '0 9,17 * * *'
 
 jobs:
-  prepare-env:
-    timeout-minutes: 5
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      checks: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -41,7 +22,6 @@ jobs:
 
   changed-tests:
     if: github.event_name == 'pull_request'
-    needs: [prepare-env]
     timeout-minutes: 5
     runs-on: ubuntu-latest
     permissions:
@@ -75,7 +55,6 @@ jobs:
 
   regression:
     if: github.event_name == 'schedule'
-    needs: [prepare-env]
     timeout-minutes: 5
     runs-on: ubuntu-latest
     permissions:
