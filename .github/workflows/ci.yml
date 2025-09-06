@@ -9,47 +9,6 @@ on:
     - cron: '0 9,17 * * *'
 
 jobs:
-  prepare-env:
-    timeout-minutes: 5
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      checks: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-          registry-url: 'https://npm.pkg.github.com'
-
-      - name: Get installed Playwright version
-        id: playwright-version
-        run: echo "PLAYWRIGHT_VERSION=$(node -e "console.log(require('./package-lock.json').dependencies['@playwright/test'].version)")" >> $GITHUB_ENV
-
-      - name: Cache playwright binaries
-        uses: actions/cache@v3
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
-
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        id: node-cache
-        with:
-          path: node_modules
-          key: node_modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.node-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Install Playwright Browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -63,7 +22,6 @@ jobs:
 
   changed-tests:
     if: github.event_name == 'pull_request'
-    needs: [prepare-env]
     timeout-minutes: 5
     runs-on: ubuntu-latest
     permissions:
@@ -75,33 +33,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
-          registry-url: 'https://npm.pkg.github.com'
-      - name: Get installed Playwright version
-        id: playwright-version
-        run: echo "PLAYWRIGHT_VERSION=$(node -e "console.log(require('./package-lock.json').dependencies['@playwright/test'].version)")" >> $GITHUB_ENV
-      - name: Cache playwright binaries
-        if: always()
-        uses: actions/cache@v3
-        id: playwright-cache
-        with:
-          path: |
-            ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        id: node-cashe
-        with:
-          path: |
-            node_modules
-          key: node_modules-${{ hashFiles('package-lock.json')}}
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
       - name: Run Playwright tests
         run: npm run test
       - name: Archive test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-changed-test
+          name: test-reports-changed-tests
           path: |
             ./playwright-report/**/*.*
             ./test-results/**/*.*
@@ -113,7 +55,6 @@ jobs:
 
   regression:
     if: github.event_name == 'schedule'
-    needs: [prepare-env]
     timeout-minutes: 5
     runs-on: ubuntu-latest
     permissions:
@@ -125,26 +66,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
-          registry-url: 'https://npm.pkg.github.com'
-      - name: Get installed Playwright version
-        id: playwright-version
-        run: echo "PLAYWRIGHT_VERSION=$(node -e "console.log(require('./package-lock.json').dependencies['@playwright/test'].version)")" >> $GITHUB_ENV
-      - name: Cache playwright binaries
-        if: always()
-        uses: actions/cache@v3
-        id: playwright-cache
-        with:
-          path: |
-            ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        id: node-cashe
-        with:
-          path: |
-            node_modules
-          key: node_modules-${{ hashFiles('package-lock.json')}}
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
       - name: Run Playwright tests
         run: npm run test
       - name: Archive test results
