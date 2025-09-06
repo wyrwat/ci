@@ -38,12 +38,12 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
       - name: Run Playwright tests
-        run: npm run test:smoke
+        run: npm run test
       - name: Archive test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-smoke-test
+          name: test-reports-changed-tests
           path: |
             ./playwright-report/**/*.*
             ./test-results/**/*.*
@@ -71,12 +71,12 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
       - name: Run Playwright tests
-        run: npm run test:smoke
+        run: npm run test
       - name: Archive test results
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-smoke-test
+          name: test-reports-regression-test
           path: |
             ./playwright-report/**/*.*
             ./test-results/**/*.*
